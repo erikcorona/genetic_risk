@@ -129,8 +129,7 @@ public:
             if(pair.second > 9)
                 cnt++;
 
-        std::cout << "associations: " << this->size() <<
-                  "\tdiseases > 9 " << cnt << std::endl;
+        std::cout << "associations: " << this->size() << "\tdiseases > 9 " << cnt << std::endl;
     }
 
     /**
@@ -141,15 +140,30 @@ public:
      * not exist within the data of this object.
      */
     GWAS get_disease(const std::string& dis_name){
-        auto name_idx = this->index_of.at("DISEASE/TRAIT");
+        return subsetter("DISEASE/TRAIT", dis_name);
+    }
+
+    GWAS subsetter(const std::string col_name, const std::string col_value){
+        auto name_idx = this->index_of.at(col_name);
 
         std::vector<gwas_entry> new_data;
         for(auto& gwas_entry : data)
-            if(gwas_entry[name_idx] == dis_name)
+            if(gwas_entry[name_idx] == col_value)
                 new_data.push_back(gwas_entry);
 
         auto new_header = header;
         return GWAS(new_header, new_data);
+    }
+
+
+    /**
+     * Retrieve a subset of this GWAS object containing results only in the specified chromosome.
+     * @param chr chromosome by which to subset the data
+     * @return the same object but only with results present in the specified chromosome
+     */
+    GWAS getChr(const std::string chr)
+    {
+        return subsetter("CHR_ID", chr);
     }
 
     auto uniqueRSIDs()
@@ -165,6 +179,8 @@ public:
 
         return rsids;
     }
+
+
 };
 
 

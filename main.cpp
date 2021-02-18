@@ -32,6 +32,11 @@ int main() {
     t2d.printSummary();
     std::cout << "Unique RSIDs for t2d: " << t2d.uniqueRSIDs().size() << std::endl;
 
+    auto t2d6 = t2d.getChr("6");
+
+    t2d6.printSummary();
+    //t2d6.positions();
+
 
     return 0;
 }
