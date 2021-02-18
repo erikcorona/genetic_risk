@@ -50,26 +50,30 @@ class GWAS{
     strings header;
     std::unordered_map<column_name, std::size_t> index_of; // maps the column name to its index position
     std::vector<gwas_entry> data;
+private:
+    void initHeaderIndexMap()
+    {
+        for(std::size_t i = 0; i < header.size(); i++)
+            index_of[header[i]] = i;
+    }
 
 public:
 
     /**
      * Initialize a new GWAS object
      * @param a_header the header strings that describe the contents in each column
-     * @param a_index_of a map of column name --> index position
      * @param a_data the vector of GWAS entries that make up a set of GWAS results
      */
-    GWAS (strings a_header, std::unordered_map<column_name, std::size_t> a_index_of, std::vector<gwas_entry> a_data)
-    : header{std::move(a_header)}, index_of{std::move(a_index_of)}, data{std::move(a_data)}
+    GWAS (strings a_header, std::vector<gwas_entry> a_data) : header{std::move(a_header)}, data{std::move(a_data)}
     {
-
+        initHeaderIndexMap();
     }
+
     explicit GWAS(const std::string& file){
 
         auto lines = get_lines(file);
         header = getTokens(lines[0]);
-        for(std::size_t i = 0; i < header.size(); i++)
-            index_of[header[i]] = i;
+        initHeaderIndexMap();
 
         lines.erase(lines.begin());
         for(auto& line : lines)
@@ -145,8 +149,7 @@ public:
                 new_data.push_back(gwas_entry);
 
         auto new_header = header;
-        auto new_index_of = index_of;
-        return GWAS(new_header, new_index_of, new_data);
+        return GWAS(new_header, new_data);
     }
 
     auto uniqueRSIDs()
