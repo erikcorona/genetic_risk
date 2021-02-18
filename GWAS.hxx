@@ -22,6 +22,11 @@ std::vector<std::string> getTokens(std::string& line){
     return tokens;
 }
 
+/**
+ * Get all lines from a file
+ * @param file the file to be read into memory
+ * @return a vector of strings
+ */
 std::vector<std::string> get_lines(const std::string& file){
     std::ifstream infile(file);
     std::vector<std::string> lines;
@@ -35,9 +40,9 @@ std::vector<std::string> get_lines(const std::string& file){
 
 class GWAS{
 
-    using column_name = std::string;
+    using column_name =             std::string ;
     using gwas_entry  = std::vector<std::string>;
-    using strings = std::vector<std::string>;
+    using strings     = std::vector<std::string>;
 
     strings header;
     std::unordered_map<column_name, std::size_t> index_of; // maps the column name to its index position
