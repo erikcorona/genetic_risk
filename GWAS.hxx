@@ -38,6 +38,9 @@ std::vector<std::string> get_lines(const std::string& file){
     return lines;
 }
 
+/**
+ * The purpose of this class is to provider an interface to all GWAS results in the GWAS catalog.
+ */
 class GWAS{
 
     using column_name =             std::string ;
@@ -50,6 +53,12 @@ class GWAS{
 
 public:
 
+    /**
+     * Initialize a new GWAS object
+     * @param a_header the header strings that describe the contents in each column
+     * @param a_index_of a map of column name --> index position
+     * @param a_data the vector of GWAS entries that make up a set of GWAS results
+     */
     GWAS (strings a_header, std::unordered_map<column_name, std::size_t> a_index_of, std::vector<gwas_entry> a_data)
     : header{std::move(a_header)}, index_of{std::move(a_index_of)}, data{std::move(a_data)}
     {
@@ -67,6 +76,10 @@ public:
             data.push_back(getTokens(line));
     }
 
+    /**
+     * The number of GWAS entries in this object.
+     * @return number of GWAS associations
+     */
     auto size() {return data.size();} // Number of associations
 
     void printHeader(){
