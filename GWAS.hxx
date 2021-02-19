@@ -69,6 +69,10 @@ public:
         initHeaderIndexMap();
     }
 
+    /**
+     * Instantiates a GWAS object from the file location of the GWAS catalog
+     * @param file the path to the GWAS catalog TSV file
+     */
     explicit GWAS(const std::string& file){
 
         auto lines = get_lines(file);
