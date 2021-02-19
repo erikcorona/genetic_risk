@@ -166,6 +166,45 @@ public:
         return subsetter("CHR_ID", chr);
     }
 
+    auto positions()
+    {
+        auto idx = this->index_of.at("CHR_POS");
+        auto es_i = index_of.at("OR or BETA");
+
+        std::vector<std::pair<unsigned long, double>> pos;
+        for(auto& gwas_entry : data)
+        {
+            unsigned long a_pos;
+            try {
+                a_pos = std::stoul(gwas_entry[idx]);
+            }catch(const std::invalid_argument& ia)
+            {
+                std::cerr << gwas_entry[idx] << " is not a valid pos ";
+                a_pos = -1;
+            }
+
+            double effect_size;
+            try {
+                effect_size = std::stod(gwas_entry[es_i]);
+            }catch(const std::invalid_argument& ia)
+            {
+                std::cerr << gwas_entry[es_i] << " is not a valid effect size ";
+                effect_size = -1;
+            }
+
+            if(a_pos > 0 && effect_size > 0)
+                pos.push_back(std::make_pair(a_pos, effect_size));
+
+        }
+
+        std::sort(pos.begin(), pos.end(),[&]( const auto& lhs, const auto& rhs )
+        {
+            return lhs.first < rhs.first;
+        });
+        return pos;
+    }
+
+
     auto uniqueRSIDs()
     {
         auto rsid_i = index_of.at("SNPS");

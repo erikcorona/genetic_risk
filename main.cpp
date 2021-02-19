@@ -35,7 +35,15 @@ int main() {
     auto t2d6 = t2d.getChr("6");
 
     t2d6.printSummary();
-    //t2d6.positions();
+    auto pos = t2d6.positions();
+
+    for(auto p : pos)
+        std::cout << p.first << ",";
+    std::cout << std::endl;
+
+    for(auto p : pos)
+        std::cout << p.second << ",";
+    std::cout << std::endl;
 
 
     return 0;
