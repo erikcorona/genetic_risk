@@ -15,6 +15,9 @@
 //using risk  = double;
 
 
+#include <iostream>
+#include <fstream>
+
 
 
 
@@ -25,10 +28,10 @@ int main() {
     gwas.printSummary();
     gwas.printHeader();
     gwas.print(1);
-    gwas.integrityCheck();
-    gwas.disease_counts();
+//    gwas.integrityCheck();
+
     auto t2d = gwas.get_disease("Type 2 diabetes");
-    t2d.disease_counts();
+
     t2d.printSummary();
     std::cout << "Unique RSIDs for t2d: " << t2d.uniqueRSIDs().size() << std::endl;
 
@@ -45,6 +48,28 @@ int main() {
         std::cout << p.second << ",";
     std::cout << std::endl;
 
+    std::ofstream myfile;
+    myfile.open ("adis.csv");
+
+    for(auto& dis_nm : gwas.uniqueDiseases())
+    {
+        auto dis  = gwas.get_disease(dis_nm);
+
+        std::vector<std::string> chrs = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y"};
+        for(auto& chr : chrs) {
+            auto dischr = dis.getChr(chr);
+            auto positions = dischr.positions();
+            std::cout << dis_nm << ":" << chr << " size is " << positions.size() << std::endl;
+
+            if (positions.size() > 70) {
+                for (auto &pos : positions)
+                    if (pos.second < 1)
+                        myfile << pos.first << "," << pos.second << "," << std::endl;
+                return 1;
+            }
+        }
+
+    }
 
     return 0;
 }

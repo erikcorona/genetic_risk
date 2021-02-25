@@ -7,6 +7,8 @@
 #ifndef GEN_RISK2_GWAS_HXX
 #define GEN_RISK2_GWAS_HXX
 
+const std::string disease_col = "DISEASE/TRAIT";
+
 /**
  * Used to convert a string to a set of tab delimeted tokens.
  * @param line a string reference
@@ -101,37 +103,37 @@ public:
             std::cout << s << std::endl;
     }
 
-    void integrityCheck()
+    //@todo replace with a true unit test
+//    void integrityCheck()
+//    {
+//        for(auto& tokens : data)
+//            assert(tokens.size() == header.size());
+//    }
+
+
+    /**
+     * Get all diseases in this GWAS object.
+     * @return List of all diseases in this GWAS object.
+     */
+    auto uniqueDiseases()
     {
-        for(auto& tokens : data)
-            assert(tokens.size() == header.size());
+        std::set<std::string> diseases;
+        for(auto& gwas_entry : data)
+            diseases.insert(gwas_entry[index_of.at(disease_col)]);
+
+        return diseases;
     }
 
-    auto diseases(){
-
-        std::unordered_map<std::string, std::size_t> disease_counts;
-        for(auto& d : data)
-            disease_counts[d[index_of.at("DISEASE/TRAIT")]]++;
-        return disease_counts;
-    }
-
-    void disease_counts()
-    {
-        std::cout << "num associations in each disease" << std::endl;
-        auto dis_cnts = this->diseases();
-        for(auto& pair : dis_cnts)
-            std::cout << pair.first << "\t" << pair.second << std::endl;
-    }
-
-    //@todo return a new gwas class but made up of only 1 disease
     void printSummary()
     {
-        auto dis_counts = this->diseases();
         std::size_t cnt{0};
-
-        for(auto& pair : dis_counts)
-            if(pair.second > 9)
+        for(auto& disease : this->uniqueDiseases())
+        {
+            auto dis = this->get_disease(disease);
+            if(dis.size() > 9)
                 cnt++;
+        }
+
 
         std::cout << "associations: " << this->size() << "\tdiseases > 9 " << cnt << std::endl;
     }
@@ -144,10 +146,10 @@ public:
      * not exist within the data of this object.
      */
     GWAS get_disease(const std::string& dis_name){
-        return subsetter("DISEASE/TRAIT", dis_name);
+        return subsetter(disease_col, dis_name);
     }
 
-    GWAS subsetter(const std::string col_name, const std::string col_value){
+    GWAS subsetter(const std::string& col_name, const std::string& col_value){
         auto name_idx = this->index_of.at(col_name);
 
         std::vector<gwas_entry> new_data;
@@ -165,11 +167,15 @@ public:
      * @param chr chromosome by which to subset the data
      * @return the same object but only with results present in the specified chromosome
      */
-    GWAS getChr(const std::string chr)
+    GWAS getChr(const std::string& chr)
     {
         return subsetter("CHR_ID", chr);
     }
 
+    /**
+     *
+     * @return
+     */
     auto positions()
     {
         auto idx = this->index_of.at("CHR_POS");
@@ -197,7 +203,7 @@ public:
             }
 
             if(a_pos > 0 && effect_size > 0)
-                pos.push_back(std::make_pair(a_pos, effect_size));
+                pos.emplace_back(a_pos, effect_size);
 
         }
 
@@ -209,6 +215,12 @@ public:
     }
 
 
+
+
+    /**
+     * Get all unique RSIDs in this GWAS object.
+     * @return List of all RSIDs in this GWAS object.
+     */
     auto uniqueRSIDs()
     {
         auto rsid_i = index_of.at("SNPS");
