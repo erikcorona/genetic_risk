@@ -1,13 +1,12 @@
 #include <utility>
-
+#include <sstream>
+#include <cassert>
 //
 // Created by dam on 2/13/21.
 //
 
 #ifndef GEN_RISK2_GWAS_HXX
 #define GEN_RISK2_GWAS_HXX
-
-const std::string disease_col = "DISEASE/TRAIT";
 
 /**
  * Used to convert a string to a set of tab delimeted tokens.
@@ -45,6 +44,7 @@ std::vector<std::string> get_lines(const std::string& file){
  */
 class GWAS{
 
+
     using column_name =             std::string ;
     using gwas_entry  = std::vector<std::string>;
     using strings     = std::vector<std::string>;
@@ -53,6 +53,9 @@ class GWAS{
     std::unordered_map<column_name, std::size_t> index_of; // maps the column name to its index position
     std::vector<gwas_entry> data;
 private:
+
+    const std::string dis_col = "DISEASE/TRAIT";
+
     void initHeaderIndexMap()
     {
         for(std::size_t i = 0; i < header.size(); i++)
@@ -119,7 +122,7 @@ public:
     {
         std::set<std::string> diseases;
         for(auto& gwas_entry : data)
-            diseases.insert(gwas_entry[index_of.at(disease_col)]);
+            diseases.insert(gwas_entry[index_of.at(dis_col)]);
 
         return diseases;
     }
@@ -146,7 +149,7 @@ public:
      * not exist within the data of this object.
      */
     GWAS get_disease(const std::string& dis_name){
-        return subsetter(disease_col, dis_name);
+        return subsetter(dis_col, dis_name);
     }
 
     GWAS subsetter(const std::string& col_name, const std::string& col_value){
@@ -176,7 +179,7 @@ public:
      *
      * @return
      */
-    auto positions()
+    auto positions_and_effect_size()
     {
         auto idx = this->index_of.at("CHR_POS");
         auto es_i = index_of.at("OR or BETA");

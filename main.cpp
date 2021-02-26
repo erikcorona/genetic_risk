@@ -1,8 +1,6 @@
 #include <iostream>
 #include <random>
 #include <fstream>
-#include <sstream>
-#include <cassert>
 #include <set>
 #include <unordered_map>
 
@@ -10,15 +8,6 @@
 
 //enum Allele {A,G,T,C};
 //std::unordered_map<int, Allele> get_allele = {{0, A}, {1, G}, {2, T}, {3, C}};
-
-//using rsNum =   long;
-//using risk  = double;
-
-
-#include <iostream>
-#include <fstream>
-
-
 
 
 int main() {
@@ -38,7 +27,7 @@ int main() {
     auto t2d6 = t2d.getChr("6");
 
     t2d6.printSummary();
-    auto pos = t2d6.positions();
+    auto pos = t2d6.positions_and_effect_size();
 
     for(auto p : pos)
         std::cout << p.first << ",";
@@ -58,13 +47,13 @@ int main() {
         std::vector<std::string> chrs = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y"};
         for(auto& chr : chrs) {
             auto dischr = dis.getChr(chr);
-            auto positions = dischr.positions();
-            std::cout << dis_nm << ":" << chr << " size is " << positions.size() << std::endl;
+            auto pos_ES = dischr.positions_and_effect_size();
+            std::cout << dis_nm << ":" << chr << " size is " << pos_ES.size() << std::endl;
 
-            if (positions.size() > 70) {
-                for (auto &pos : positions)
-                    if (pos.second < 1)
-                        myfile << pos.first << "," << pos.second << "," << std::endl;
+            if (pos_ES.size() > 70) {
+                for (auto &pes: pos_ES)
+                    if (pes.second < 1)
+                        myfile << pes.first << "," << pes.second << "," << std::endl;
                 return 1;
             }
         }
