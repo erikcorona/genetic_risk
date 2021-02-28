@@ -44,7 +44,7 @@ int main() {
     //@todo see if some genome regions are have a higher prior to being associated with a disease, more than chance allows. there may be other MHC-type regions
     for(auto& dis_nm : gwas.uniqueDiseases())
     {
-        auto dis  = gwas.get_disease(dis_nm);
+        auto dis = gwas.subsetter(gwas.dis_i, dis_nm);
 
         std::vector<std::string> chrs = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y"};
         for(auto& chr : chrs) {
