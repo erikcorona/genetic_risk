@@ -24,7 +24,7 @@ int main() {
     t2d.printSummary();
     std::cout << "Unique RSIDs for t2d: " << t2d.uniqueRSIDs().size() << std::endl;
 
-    auto t2d6 = t2d.getChr("6");
+    auto t2d6 = t2d.chr_sub("6");
 
     t2d6.printSummary();
     auto pos = t2d6.positions_and_effect_size();
@@ -40,17 +40,19 @@ int main() {
     std::ofstream myfile;
     myfile.open ("adis.csv");
 
+    //@todo investigate different odds ratios at the exact same position and also see if they have the same risk allele
+    //@todo see if some genome regions are have a higher prior to being associated with a disease, more than chance allows. there may be other MHC-type regions
     for(auto& dis_nm : gwas.uniqueDiseases())
     {
         auto dis  = gwas.get_disease(dis_nm);
 
         std::vector<std::string> chrs = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y"};
         for(auto& chr : chrs) {
-            auto dischr = dis.getChr(chr);
+            auto dischr = dis.chr_sub(chr);
             auto pos_ES = dischr.positions_and_effect_size();
             std::cout << dis_nm << ":" << chr << " size is " << pos_ES.size() << std::endl;
 
-            if (pos_ES.size() > 70) {
+            if (pos_ES.size() > 1546) {
                 for (auto &pes: pos_ES)
                     if (pes.second < 1)
                         myfile << pes.first << "," << pes.second << "," << std::endl;

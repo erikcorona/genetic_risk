@@ -8,6 +8,7 @@
 #ifndef GEN_RISK2_GWAS_HXX
 #define GEN_RISK2_GWAS_HXX
 
+//@todo implement a masking system so that no data is copied. When a user wants to get an object with only chr 6 data then the same underlying object should be used but with a hidden mask applied. will speed up the processing tremendously as no data will need to be copied
 /**
  * Used to convert a string to a set of tab delimeted tokens.
  * @param line a string reference
@@ -21,6 +22,19 @@ std::vector<std::string> getTokens(std::string& line){
     while (std::getline(iss, token, '\t'))
         tokens.push_back(token);
     return tokens;
+}
+
+template<typename scalar>
+auto intersect(std::vector<scalar> a, std::vector<scalar> b)
+{
+    std::set<scalar> s(a.begin(), a.end());
+    std::set<scalar> intersect_mask;
+
+    for(auto i : b)
+        if(s.contains(i))
+            intersect_mask.insert(i);
+
+    return intersect_mask;
 }
 
 /**
@@ -62,6 +76,61 @@ private:
             index_of[header[i]] = i;
     }
 
+    /**
+     * Returns index of of valid positions in the GWAS object. Not all positions are valid. Some are missing or do not
+     * resolve to valid numbers.
+     * @return vector holding a vector of valid positions.
+     */
+    auto positions_mask()
+    {
+        auto idx = this->index_of.at("CHR_POS");
+
+        std::vector<std::size_t> mask_pos;
+        for(std::size_t i{0}; i < data.size(); i++)
+        {
+            auto& gwas_entry = data[i];
+
+            unsigned long a_pos;
+            try {
+                a_pos = std::stoul(gwas_entry[idx]);
+            }catch(const std::invalid_argument& ia)
+            {
+                std::cerr << gwas_entry[idx] << " is not a valid pos ";
+                a_pos = -1;
+            }
+
+            if(a_pos > 0)
+                mask_pos.emplace_back(i);
+        }
+
+        return mask_pos;
+    }
+
+    auto effect_size_mask()
+    {
+        auto es_i = index_of.at("OR or BETA");
+
+        std::vector<std::size_t> es;
+        for(std::size_t i{0}; i < data.size(); i++)
+        {
+            auto& gwas_entry = data[i];
+            double effect_size;
+            try {
+                effect_size = std::stod(gwas_entry[es_i]);
+            }catch(const std::invalid_argument& ia)
+            {
+                std::cerr << gwas_entry[es_i] << " is not a valid effect size ";
+                effect_size = -1;
+            }
+
+            if(effect_size > 0)
+                es.emplace_back(i);
+        }
+
+
+        return es;
+    }
+
 public:
 
     /**
@@ -71,6 +140,7 @@ public:
      */
     GWAS (strings a_header, std::vector<gwas_entry> a_data) : header{std::move(a_header)}, data{std::move(a_data)}
     {
+        //@todo initialize all column index positions (e.g., dis_col_i = disease column index
         initHeaderIndexMap();
     }
 
@@ -137,7 +207,6 @@ public:
                 cnt++;
         }
 
-
         std::cout << "associations: " << this->size() << "\tdiseases > 9 " << cnt << std::endl;
     }
 
@@ -170,55 +239,64 @@ public:
      * @param chr chromosome by which to subset the data
      * @return the same object but only with results present in the specified chromosome
      */
-    GWAS getChr(const std::string& chr)
+    GWAS chr_sub(const std::string& chr)
     {
         return subsetter("CHR_ID", chr);
     }
 
-    /**
-     *
-     * @return
-     */
-    auto positions_and_effect_size()
+    auto positions()
     {
         auto idx = this->index_of.at("CHR_POS");
-        auto es_i = index_of.at("OR or BETA");
+        std::vector<unsigned long> pos;
 
-        std::vector<std::pair<unsigned long, double>> pos;
-        for(auto& gwas_entry : data)
+        unsigned long a_pos;
+        for(auto i : positions_mask())
         {
-            unsigned long a_pos;
-            try {
-                a_pos = std::stoul(gwas_entry[idx]);
-            }catch(const std::invalid_argument& ia)
-            {
-                std::cerr << gwas_entry[idx] << " is not a valid pos ";
-                a_pos = -1;
-            }
-
-            double effect_size;
-            try {
-                effect_size = std::stod(gwas_entry[es_i]);
-            }catch(const std::invalid_argument& ia)
-            {
-                std::cerr << gwas_entry[es_i] << " is not a valid effect size ";
-                effect_size = -1;
-            }
-
-            if(a_pos > 0 && effect_size > 0)
-                pos.emplace_back(a_pos, effect_size);
-
+            auto& gwas_entry = data[i];
+            a_pos = std::stoul(gwas_entry[idx]);
+            pos.emplace_back(a_pos);
         }
 
-        std::sort(pos.begin(), pos.end(),[&]( const auto& lhs, const auto& rhs )
-        {
-            return lhs.first < rhs.first;
-        });
         return pos;
     }
 
+    auto effect_size()
+    {
+        auto es_i = index_of.at("OR or BETA");
 
+        std::vector<double> es;
+        for(auto i : effect_size_mask())
+        {
+            auto& gwas_entry = data[i];
+            double effect_size;
+            effect_size = std::stod(gwas_entry[es_i]);
+            es.emplace_back(effect_size);
+        }
 
+        return es;
+    }
+
+    /**
+     * Retrieves the position and effect size of all associations in this object. This function returns all positions
+     * and effect size info, even if there are multople diseases and multiple chromosomes mixed into the data of this
+     * object.
+     * @return position and effect size contents of this object. It only returns cases where both the effect size and
+     * position are valid numbers.
+     */
+    auto positions_and_effect_size() {
+        auto idx  = index_of.at("CHR_POS"   );
+        auto es_i = index_of.at("OR or BETA");
+
+        std::vector<std::pair<unsigned long, double>> pe;
+        for (auto i: intersect(positions_mask(), effect_size_mask())) {
+            auto &gwas_entry = data[i];
+            auto a_pos        = std::stoul(gwas_entry[idx]);
+            auto effect_size  = std::stod(gwas_entry[es_i]);
+            pe.emplace_back(a_pos, effect_size);
+        }
+
+        return pe;
+    }
 
     /**
      * Get all unique RSIDs in this GWAS object.
