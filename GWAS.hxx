@@ -197,23 +197,12 @@ public:
         std::size_t cnt{0};
         for(auto& disease : this->uniqueDiseases())
         {
-            auto dis = this->get_disease(disease);
+            auto dis = this->subsetter(dis_i, disease);
             if(dis.size() > 9)
                 cnt++;
         }
 
         std::cout << "associations: " << this->size() << "\tdiseases > 9 " << cnt << std::endl;
-    }
-
-    /**
-     * Subsets the data in this object. It will return a version of this object with only the specified disease in the
-     * data.
-     * @param dis_name the disease by which to subset this object
-     * @return A version of this object with only the specified disease or an empty one if the disease specified does
-     * not exist within the data of this object.
-     */
-    GWAS get_disease(const std::string& dis_name){
-        return subsetter(dis_i, dis_name);
     }
 
     GWAS subsetter(const std::size_t name_idx, const std::string& col_value){
@@ -226,18 +215,6 @@ public:
         auto new_header = header;
         return GWAS(new_header, new_data);
     }
-
-
-    /**
-     * Retrieve a subset of this GWAS object containing results only in the specified chromosome.
-     * @param chr chromosome by which to subset the data
-     * @return the same object but only with results present in the specified chromosome
-     */
-    GWAS chr_sub(const std::string& chr)
-    {
-        return subsetter(chr_i, chr);
-    }
-
 
     /**
      * Retrieves the position and effect size of all associations in this object. This function returns all positions
