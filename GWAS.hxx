@@ -10,6 +10,12 @@
 #ifndef GEN_RISK2_GWAS_HXX
 #define GEN_RISK2_GWAS_HXX
 
+/**
+ * Generic parser that takes a string and converts it to some other data type.
+ * @tparam T The data type to which the string will be converted.
+ * @param v The string that will be parsed
+ * @return A new value that was parsed from the string of type T.
+ */
 template<typename T>
 auto parser(const std::string& v) -> T {
     try {
@@ -35,8 +41,8 @@ std::vector<std::string> getTokens(std::string& line){
     return tokens;
 }
 
-template<typename scalar>
-auto intersect(std::vector<scalar> a, std::vector<scalar> b)
+template<typename scalar, typename collection1, typename collection2>
+auto intersect(collection1 a, collection2 b)
 {
     std::set<scalar> s(a.begin(), a.end());
     std::set<scalar> intersect_mask;
@@ -80,7 +86,7 @@ private:
     strings header;
     std::vector<gwas_entry> data;
 
-    void initHeaderIndexMap()
+    inline void initHeaderIndexMap()
     {
         std::unordered_map<column_name, std::size_t> index_of; // maps the column name to its index position
         for(std::size_t i = 0; i < header.size(); i++)
@@ -134,7 +140,7 @@ public:
      * @param a_header the header strings that describe the contents in each column
      * @param a_data the vector of GWAS entries that make up a set of GWAS results
      */
-    GWAS (strings a_header, std::vector<gwas_entry> a_data) : header{std::move(a_header)}, data{std::move(a_data)}
+    GWAS (strings a_header, std::vector<gwas_entry> a_data) : header{std::move(a_header)}, data{std::move(a_data)} // NOLINT(cppcoreguidelines-pro-type-member-init)
     {
         initHeaderIndexMap();
     }
@@ -143,7 +149,7 @@ public:
      * Instantiates a GWAS object from the file location of the GWAS catalog
      * @param file the path to the GWAS catalog TSV file
      */
-    explicit GWAS(const std::string& file){
+    explicit GWAS(const std::string& file){ // NOLINT(cppcoreguidelines-pro-type-member-init)
 
         auto lines = get_lines(file);
         header = getTokens(lines[0]);
@@ -226,10 +232,10 @@ public:
     auto positions_and_effect_size() {
 
         std::vector<std::pair<unsigned long, double>> pe;
-        for (auto i : intersect(grab_mask(pos_i, parser<unsigned long>), grab_mask(es_i, parser<double>))) {
+        for (auto i : intersect<unsigned long>(grab_mask(pos_i, parser<unsigned long>), grab_mask(es_i, parser<double>))) {
             auto &gwas_entry = data[i];
             auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[pos_i]);
-            auto effect_size  = boost::lexical_cast<double>(gwas_entry[es_i]);
+            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[es_i ]);
             pe.emplace_back(a_pos, effect_size);
         }
 
