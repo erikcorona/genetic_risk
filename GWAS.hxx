@@ -117,12 +117,8 @@ private:
     {
         std::vector<std::size_t> mask_pos;
         for(std::size_t i{0}; i < data.size(); i++)
-        {
-            auto& gwas_entry = data[i];
-            auto a_pos = f(gwas_entry[idx]);
-            if(!std::isnan(a_pos))
+            if(!std::isnan(f(data[i][idx]))) // data[i] is a gwas_entry, data[i][idx] is a value in a gwas entry
                 mask_pos.emplace_back(i);
-        }
 
         return mask_pos;
     }
@@ -233,6 +229,30 @@ public:
 
         std::vector<std::pair<unsigned long, double>> pe;
         for (auto i : intersect<unsigned long>(grab_mask(pos_i, parser<unsigned long>), grab_mask(es_i, parser<double>))) {
+            auto &gwas_entry = data[i];
+            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[pos_i]);
+            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[es_i ]);
+            pe.emplace_back(a_pos, effect_size);
+        }
+
+        return pe;
+    }
+
+    /**
+     * Retrieves the position and effect size of all associations in this object. This function returns all positions
+     * and effect size info, even if there are multople diseases and multiple chromosomes mixed into the data of this
+     * object.
+     * @return position and effect size contents of this object. It only returns cases where both the effect size and
+     * position are valid numbers.
+     */
+    template<int a, typename partner>
+    auto positions_and_X() {
+
+        if (a == 1)
+            std::cout << "3" << std::endl;
+
+        std::vector<std::pair<unsigned long, partner>> pe;
+        for (auto i : intersect<unsigned long>(grab_mask(pos_i, parser<unsigned long>), grab_mask(es_i, parser<double>))) { // for every entry with a valid position and effect size
             auto &gwas_entry = data[i];
             auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[pos_i]);
             auto effect_size  = boost::lexical_cast<double       >(gwas_entry[es_i ]);

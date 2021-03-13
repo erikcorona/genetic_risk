@@ -49,7 +49,8 @@ int main() {
         for(auto& chr : chrs) {
             auto dischr = dis.subsetter(dis.chr_i,chr);
             auto pos_ES = dischr.positions_and_effect_size();
-            std::cout << dis_nm << ":" << chr << " size is " << pos_ES.size() << std::endl;
+            if(!pos_ES.empty())
+                std::cout << dis_nm << ":" << chr << " size is " << pos_ES.size() << std::endl;
 
             if (pos_ES.size() > 1546) {
                 for (auto &pes: pos_ES)
