@@ -11,7 +11,7 @@
 
 int main() {
 
-    auto gwas = GWAS("gwas_catalog_v1.0-associations_e100_r2021-01-29.tsv");
+    auto gwas = GWAS("gwas_catalog_v1.0-associations_e100_r2021-02-25.tsv");
 
     gwas.printSummary();
     gwas.printHeader();
