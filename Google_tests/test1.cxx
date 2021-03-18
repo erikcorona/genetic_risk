@@ -6,9 +6,8 @@
 #include "GWAS.hxx"
 
 TEST(AAA,BBB){ // 12/2/2020 -> 737761
-    int a = 3;
-
-    EXPECT_EQ(a,3);
+    auto gwas = GWAS("gwas_catalog_v1.0-associations_e100_r2021-02-25.tsv");
+    gwas.integrityCheck();
 }
 
 

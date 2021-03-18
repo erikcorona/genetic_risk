@@ -73,6 +73,7 @@ std::vector<std::string> get_lines(const std::string& file){
 /**
  * The purpose of this class is to provider an interface to all GWAS results in the GWAS catalog.
  */
+ //@todo seperate out the file reading and the GWAS class. They should have different responsibilites.
 class GWAS{
 
 
@@ -174,11 +175,11 @@ public:
     }
 
     //@todo replace with a true unit test
-//    void integrityCheck()
-//    {
-//        for(auto& tokens : data)
-//            assert(tokens.size() == header.size());
-//    }
+    void integrityCheck()
+    {
+        for(auto& tokens : data)
+            assert(tokens.size() == header.size());
+    }
 
 
     /**
