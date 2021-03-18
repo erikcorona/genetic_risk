@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.17)
 project(gen_risk2)
 
+
+add_subdirectory(Google_tests)
+
 set(CMAKE_CXX_STANDARD 20)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -std=c++20")
