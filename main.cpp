@@ -8,7 +8,6 @@
 //enum Allele {A,G,T,C};
 //std::unordered_map<int, Allele> get_allele = {{0, A}, {1, G}, {2, T}, {3, C}};
 
-
 int main() {
 
     auto gwas = GWAS("gwas_catalog_v1.0-associations_e100_r2021-02-25.tsv");
