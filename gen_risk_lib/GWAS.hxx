@@ -100,7 +100,11 @@ public:
         rsid_i = index_of.at("SNPS"        );
     }
 
-    FlatFile(){}
+    FlatFile(strings a_header, std::vector<a_row> a_data){ // NOLINT(cppcoreguidelines-pro-type-member-init)
+        header = std::move(a_header);
+        data   = std::move(a_data  );
+        initHeaderIndexMap();
+    }
 
 //    template<typename AString>
     explicit FlatFile(const std::string& file){ // NOLINT(cppcoreguidelines-pro-type-member-init)
@@ -160,12 +164,9 @@ public:
      * @param a_header the header strings that describe the contents in each column
      * @param a_data the vector of GWAS entries that make up a set of GWAS results
      */
-    GWAS (strings a_header, std::vector<gwas_entry> a_data)
+    GWAS (const strings& a_header, const std::vector<gwas_entry>& a_data)
     {
-        file = std::make_unique<FlatFile>();
-        file->header = std::move(a_header);
-        file->data   = std::move(a_data);
-        file->initHeaderIndexMap();
+        file = std::make_unique<FlatFile>(a_header, a_data);
     }
 
     /**
