@@ -20,12 +20,12 @@ int main() {
     gwas.print(1);
 //    gwas.integrityCheck();
 
-    auto t2d = gwas.subsetter(gwas.dis_i,"Type 2 diabetes");
+    auto t2d = gwas.subsetter(gwas.file->dis_i,"Type 2 diabetes");
 
     t2d.printSummary();
     std::cout << "Unique RSIDs for t2d: " << t2d.uniqueRSIDs().size() << std::endl;
 
-    auto t2d6 = t2d.subsetter(t2d.chr_i,"6");
+    auto t2d6 = t2d.subsetter(t2d.file->chr_i,"6");
 
     t2d6.printSummary();
     auto pos = t2d6.positions_and_effect_size();
@@ -45,11 +45,11 @@ int main() {
     //@todo see if some genome regions are have a higher prior to being associated with a disease, more than chance allows. there may be other MHC-type regions
     for(auto& dis_nm : gwas.uniqueDiseases())
     {
-        auto dis = gwas.subsetter(gwas.dis_i, dis_nm);
+        auto dis = gwas.subsetter(gwas.file->dis_i, dis_nm);
 
         std::vector<std::string> chrs = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y"};
         for(auto& chr : chrs) {
-            auto dischr = dis.subsetter(dis.chr_i,chr);
+            auto dischr = dis.subsetter(dis.file->chr_i,chr);
             auto pos_ES = dischr.positions_and_effect_size();
             if(!pos_ES.empty())
                 std::cout << dis_nm << ":" << chr << " size is " << pos_ES.size() << std::endl;

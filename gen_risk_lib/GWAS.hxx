@@ -70,25 +70,26 @@ std::vector<std::string> get_lines(const std::string& file){
     return lines;
 }
 
-/**
- * The purpose of this class is to provider an interface to all GWAS results in the GWAS catalog.
- */
-class GWAS{
+class FlatFile{
 
-
-    using column_name =             std::string ;
-    using gwas_entry  = std::vector<std::string>;
-    using strings     = std::vector<std::string>;
-
-
-private:
+public:
+    using col_nm  = std::string             ;
+    using strings = std::vector<std::string>;
+    using a_row   = std::vector<std::string>;
 
     strings header;
-    std::vector<gwas_entry> data;
+    std::vector<a_row> data;
+
+    std::size_t dis_i, // disease column index
+    pos_i, // chromosomal bp position column index
+    es_i , // effect size column index
+    chr_i, // chromosome column index
+    rsid_i; // SNP ID column index
+
 
     inline void initHeaderIndexMap()
     {
-        std::unordered_map<column_name, std::size_t> index_of; // maps the column name to its index position
+        std::unordered_map<col_nm, std::size_t> index_of; // maps the column name to its index position
         for(std::size_t i = 0; i < header.size(); i++)
             index_of[header[i]] = i;
 
@@ -98,6 +99,32 @@ private:
         chr_i = index_of.at("CHR_ID"       );
         rsid_i = index_of.at("SNPS"        );
     }
+
+    FlatFile(){}
+
+//    template<typename AString>
+    explicit FlatFile(const std::string& file){ // NOLINT(cppcoreguidelines-pro-type-member-init)
+
+        auto lines = get_lines(file);
+        header = getTokens(lines[0]);
+        initHeaderIndexMap();
+
+        lines.erase(lines.begin());
+        for(auto& line : lines)
+            data.push_back(getTokens(line));
+    }
+};
+
+/**
+ * The purpose of this class is to provider an interface to all GWAS results in the GWAS catalog.
+ */
+class GWAS{
+
+    using gwas_entry  = std::vector<std::string>;
+    using strings     = std::vector<std::string>;
+
+
+private:
 
     /**
      * Returns index of of parseable value in the GWAS object. Not all positions are valid. Some are missing or do not
@@ -116,8 +143,8 @@ private:
     auto grab_mask(const std::size_t idx, SomeFunction f)
     {
         std::vector<std::size_t> mask_pos;
-        for(std::size_t i{0}; i < data.size(); i++)
-            if(!std::isnan(f(data[i][idx]))) // data[i] is a gwas_entry, data[i][idx] is a value in a gwas entry
+        for(std::size_t i{0}; i < file->data.size(); i++)
+            if(!std::isnan(f(file->data[i][idx]))) // data[i] is a gwas_entry, data[i][idx] is a value in a gwas entry
                 mask_pos.emplace_back(i);
 
         return mask_pos;
@@ -125,51 +152,44 @@ private:
 
 public:
 
-    std::size_t dis_i, // disease column index
-                pos_i, // chromosomal bp position column index
-                es_i , // effect size column index
-                chr_i, // chromosome column index
-                rsid_i; // SNP ID column index
+    std::unique_ptr<FlatFile> file;
+
 
     /**
      * Initialize a new GWAS object
      * @param a_header the header strings that describe the contents in each column
      * @param a_data the vector of GWAS entries that make up a set of GWAS results
      */
-    GWAS (strings a_header, std::vector<gwas_entry> a_data) : header{std::move(a_header)}, data{std::move(a_data)} // NOLINT(cppcoreguidelines-pro-type-member-init)
+    GWAS (strings a_header, std::vector<gwas_entry> a_data)
     {
-        initHeaderIndexMap();
+        file = std::make_unique<FlatFile>();
+        file->header = std::move(a_header);
+        file->data   = std::move(a_data);
+        file->initHeaderIndexMap();
     }
 
     /**
      * Instantiates a GWAS object from the file location of the GWAS catalog
      * @param file the path to the GWAS catalog TSV file
      */
-    explicit GWAS(const std::string& file){ // NOLINT(cppcoreguidelines-pro-type-member-init)
-
-        auto lines = get_lines(file);
-        header = getTokens(lines[0]);
-        initHeaderIndexMap();
-
-        lines.erase(lines.begin());
-        for(auto& line : lines)
-            data.push_back(getTokens(line));
+    explicit GWAS(const std::string& file_nm){ // NOLINT(cppcoreguidelines-pro-type-member-init)
+        file = std::make_unique<FlatFile>(file_nm);
     }
 
     /**
      * The number of GWAS entries in this object.
      * @return number of GWAS associations
      */
-    auto size() {return data.size();} // Number of associations
+    auto size() {return file->data.size();} // Number of associations
 
     void printHeader(){
-        for(std::string& s : header)
+        for(std::string& s : file->header)
             std::cout << s << std::endl;
     }
 
     void print(std::size_t i)
     {
-        for(std::string& s : data[i])
+        for(std::string& s : file->data[i])
             std::cout << s << std::endl;
     }
 
@@ -188,8 +208,8 @@ public:
     auto uniqueDiseases()
     {
         std::set<std::string> diseases;
-        for(auto& gwas_entry : data)
-            diseases.insert(gwas_entry[dis_i]);
+        for(auto& gwas_entry : file->data)
+            diseases.insert(gwas_entry[file->dis_i]);
 
         return diseases;
     }
@@ -199,7 +219,7 @@ public:
         std::size_t cnt{0};
         for(auto& disease : this->uniqueDiseases())
         {
-            auto dis = this->subsetter(dis_i, disease);
+            auto dis = this->subsetter(file->dis_i, disease);
             if(dis.size() > 9)
                 cnt++;
         }
@@ -210,11 +230,11 @@ public:
     GWAS subsetter(const std::size_t name_idx, const std::string& col_value){
 
         std::vector<gwas_entry> new_data;
-        for(auto& gwas_entry : data)
+        for(auto& gwas_entry : file->data)
             if(gwas_entry[name_idx] == col_value)
                 new_data.push_back(gwas_entry);
 
-        auto new_header = header;
+        auto new_header = file->header;
         return GWAS(new_header, new_data);
     }
 
@@ -228,10 +248,10 @@ public:
     auto positions_and_effect_size() {
 
         std::vector<std::pair<unsigned long, double>> pe;
-        for (auto i : intersect<unsigned long>(grab_mask(pos_i, parser<unsigned long>), grab_mask(es_i, parser<double>))) {
-            auto &gwas_entry = data[i];
-            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[pos_i]);
-            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[es_i ]);
+        for (auto i : intersect<unsigned long>(grab_mask(file->pos_i, parser<unsigned long>), grab_mask(file->es_i, parser<double>))) {
+            auto &gwas_entry = file->data[i];
+            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[file->pos_i]);
+            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[file->es_i ]);
             pe.emplace_back(a_pos, effect_size);
         }
 
@@ -252,10 +272,10 @@ public:
             std::cout << "3" << std::endl;
 
         std::vector<std::pair<unsigned long, partner>> pe;
-        for (auto i : intersect<unsigned long>(grab_mask(pos_i, parser<unsigned long>), grab_mask(es_i, parser<double>))) { // for every entry with a valid position and effect size
-            auto &gwas_entry = data[i];
-            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[pos_i]);
-            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[es_i ]);
+        for (auto i : intersect<unsigned long>(grab_mask(file->pos_i, parser<unsigned long>), grab_mask(file->es_i, parser<double>))) { // for every entry with a valid position and effect size
+            auto &gwas_entry = file->data[i];
+            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[file->pos_i]);
+            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[file->es_i ]);
             pe.emplace_back(a_pos, effect_size);
         }
 
@@ -270,8 +290,8 @@ public:
     {
         std::set<std::string> rsids;
 
-        for(auto& gwas_entry : data) {
-            std::string& rsid = gwas_entry[rsid_i];
+        for(auto& gwas_entry : file->data) {
+            std::string& rsid = gwas_entry[file->rsid_i];
             if (rsid.starts_with("rs") && rsid.find(' ') == std::string::npos && rsid.find('\t') == std::string::npos && rsid.find(';') == std::string::npos)
                 rsids.insert(rsid);
         }
