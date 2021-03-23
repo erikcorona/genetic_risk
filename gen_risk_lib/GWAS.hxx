@@ -167,7 +167,6 @@ public:
 class GWAS{
 
     using gwas_entry = std::vector<std::string>;
-    using strings    = std::vector<std::string>;
 
 private:
 
@@ -195,7 +194,7 @@ private:
         return mask_pos;
     }
 
-    gwas_entry& ith_gwas(std::size_t i){
+    [[nodiscard]] gwas_entry& ith_gwas(std::size_t i) const{
         return file->ith_row(i);
     }
 
@@ -210,14 +209,10 @@ public:
      * @param a_data the vector of GWAS entries that make up a set of GWAS results
      */
 
-    GWAS (std::unique_ptr<FlatFile>& f){
+    explicit GWAS (std::unique_ptr<FlatFile>& f){
         file = std::move(f);
     }
 
-    GWAS (const strings& a_header, const std::vector<gwas_entry>& a_data)
-    {
-        file = std::make_unique<FlatFile>(a_header, a_data);
-    }
 
     /**
      * Instantiates a GWAS object from the file location of the GWAS catalog
@@ -246,12 +241,12 @@ public:
      * Get all diseases in this GWAS object.
      * @return List of all diseases in this GWAS object.
      */
-    auto uniqueDiseases()
+    [[nodiscard]] auto uniqueDiseases() const
     {
         return file->unique_col(file->dis_i);
     }
 
-    void printSummary()
+    void printSummary() const
     {
         std::size_t cnt{0};
         for(auto& disease : this->uniqueDiseases())
@@ -266,7 +261,7 @@ public:
         file->print_header();
     }
 
-    GWAS subsetter(const std::size_t name_idx, const std::string& col_value){
+    [[nodiscard]] GWAS subsetter(const std::size_t name_idx, const std::string& col_value) const{
 
         std::unique_ptr<FlatFile> new_f = file->subsetter(name_idx, col_value);
 
@@ -300,28 +295,28 @@ public:
      * @return position and effect size contents of this object. It only returns cases where both the effect size and
      * position are valid numbers.
      */
-    template<int a, typename partner>
-    auto positions_and_X() {
-
-        if (a == 1)
-            std::cout << "3" << std::endl;
-
-        std::vector<std::pair<unsigned long, partner>> pe;
-        for (auto i : intersect<unsigned long>(grab_mask(file->pos_i, parser<unsigned long>), grab_mask(file->es_i, parser<double>))) { // for every entry with a valid position and effect size
-            auto &gwas_entry = this->ith_gwas(i);//file->data[i];
-            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[file->pos_i]);
-            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[file->es_i ]);
-            pe.emplace_back(a_pos, effect_size);
-        }
-
-        return pe;
-    }
+//    template<int a, typename partner>
+//    auto positions_and_X() {
+//
+//        if (a == 1)
+//            std::cout << "3" << std::endl;
+//
+//        std::vector<std::pair<unsigned long, partner>> pe;
+//        for (auto i : intersect<unsigned long>(grab_mask(file->pos_i, parser<unsigned long>), grab_mask(file->es_i, parser<double>))) { // for every entry with a valid position and effect size
+//            auto &gwas_entry = this->ith_gwas(i);//file->data[i];
+//            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[file->pos_i]);
+//            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[file->es_i ]);
+//            pe.emplace_back(a_pos, effect_size);
+//        }
+//
+//        return pe;
+//    }
 
     /**
      * Get all unique RSIDs in this GWAS object.
      * @return List of all RSIDs in this GWAS object.
      */
-    auto uniqueRSIDs()
+    [[nodiscard]] auto uniqueRSIDs() const
     {
         return file->unique_col(file->rsid_i);
     }
