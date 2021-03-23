@@ -16,8 +16,6 @@ int main() {
     auto gwas = GWAS("gwas_catalog_v1.0-associations_e100_r2021-02-25.tsv");
 
     gwas.printSummary();
-    gwas.printHeader();
-    gwas.print(1);
 //    gwas.integrityCheck();
 
     auto t2d = gwas.subsetter(gwas.file->dis_i,"Type 2 diabetes");
