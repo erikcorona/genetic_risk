@@ -84,11 +84,7 @@ private:
 
 public:
 
-    std::size_t dis_i, // disease column index
-    pos_i, // chromosomal bp position column index
-    es_i , // effect size column index
-    chr_i, // chromosome column index
-    rsid_i; // SNP ID column index
+    std::unordered_map<col_nm, std::size_t> index_of; // maps the column name to its index position
 
 
     a_row& ith_row(std::size_t i)
@@ -108,17 +104,11 @@ public:
         return data[row][col];
     }
 
+    //@todo finish removing all *_i member fields.
     inline void initHeaderIndexMap()
     {
-        std::unordered_map<col_nm, std::size_t> index_of; // maps the column name to its index position
         for(std::size_t i = 0; i < header.size(); i++)
             index_of[header[i]] = i;
-
-        dis_i = index_of.at("DISEASE/TRAIT");
-        pos_i = index_of.at("CHR_POS"      );
-        es_i  = index_of.at("OR or BETA"   );
-        chr_i = index_of.at("CHR_ID"       );
-        rsid_i = index_of.at("SNPS"        );
     }
 
     FlatFile(strings a_header, std::vector<a_row> a_data){ // NOLINT(cppcoreguidelines-pro-type-member-init)
@@ -243,7 +233,7 @@ public:
      */
     [[nodiscard]] auto uniqueDiseases() const
     {
-        return file->unique_col(file->dis_i);
+        return file->unique_col(file->index_of.at("DISEASE/TRAIT"));
     }
 
     void printSummary() const
@@ -251,7 +241,7 @@ public:
         std::size_t cnt{0};
         for(auto& disease : this->uniqueDiseases())
         {
-            auto dis = this->subsetter(file->dis_i, disease);
+            auto dis = this->subsetter(file->index_of.at("DISEASE/TRAIT"), disease);
             if(dis.size() > 9)
                 cnt++;
         }
@@ -278,10 +268,10 @@ public:
     auto positions_and_effect_size() {
 
         std::vector<std::pair<unsigned long, double>> pe;
-        for (auto i : intersect<unsigned long>(grab_mask(file->pos_i, parser<unsigned long>), grab_mask(file->es_i, parser<double>))) {
+        for (auto i : intersect<unsigned long>(grab_mask(file->index_of.at("CHR_POS"), parser<unsigned long>), grab_mask(file->index_of.at("OR or BETA"), parser<double>))) {
             auto &gwas_entry = this->ith_gwas(i);
-            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[file->pos_i]);
-            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[file->es_i ]);
+            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[file->index_of.at("CHR_POS")]);
+            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[file->index_of.at("OR or BETA")]);
             pe.emplace_back(a_pos, effect_size);
         }
 
@@ -318,7 +308,8 @@ public:
      */
     [[nodiscard]] auto uniqueRSIDs() const
     {
-        return file->unique_col(file->rsid_i);
+
+        return file->unique_col(file->index_of.at("SNPS"));
     }
 
 };
