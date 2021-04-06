@@ -79,7 +79,7 @@ class FlatFile{
 
 private:
 
-    strings header;
+    strings          header;
     std::vector<a_row> data;
 
 public:
@@ -87,28 +87,44 @@ public:
     std::unordered_map<col_nm, std::size_t> index_of; // maps the column name to its index position
 
 
-    a_row& ith_row(std::size_t i)
-    {
-        return this->data[i];
-    }
+    a_row & ith_row(std::size_t i) { return this->data[i]; }
 
     void print_header(){
         for(std::string& s : header)
             std::cout << s << std::endl;
     }
 
-    auto num_rows(){ return data.size(); }
+    auto num_rows() const{ return data.size(); }
 
     auto cell(std::size_t row, std::size_t col) -> std::string&
     {
         return data[row][col];
     }
 
-    //@todo finish removing all *_i member fields.
     inline void initHeaderIndexMap()
     {
         for(std::size_t i = 0; i < header.size(); i++)
             index_of[header[i]] = i;
+    }
+
+    FlatFile(const FlatFile & f)
+    {
+        this->header   = f.header;
+        this->data     = f.data  ;
+        this->index_of = f.index_of;
+    }
+
+    FlatFile(FlatFile &&f)  noexcept {
+        this->header   = std::move(f.header);
+        this->data     = std::move(f.data  );
+        this->index_of = std::move(f.index_of);
+    }
+
+    FlatFile& operator=(FlatFile&& other) noexcept {
+        this->header   = std::move(other.header);
+        this->data     = std::move(other.data);
+        this->index_of = std::move(other.index_of);
+        return *this;
     }
 
     FlatFile(strings a_header, std::vector<a_row> a_data){ // NOLINT(cppcoreguidelines-pro-type-member-init)
@@ -117,20 +133,25 @@ public:
         initHeaderIndexMap();
     }
 
-//    template<typename AString>
     explicit FlatFile(const std::string& file){ // NOLINT(cppcoreguidelines-pro-type-member-init)
 
+        // Read in header
         auto lines = get_lines(file);
         header = getTokens(lines[0]);
         initHeaderIndexMap();
 
-        lines.erase(lines.begin());
-        for(auto& line : lines)
+        // read in the rest of the data
+        lines.erase(lines.begin());              // delete header
+        for(auto& line : lines)                  // read in every line in flat file
             data.push_back(getTokens(line));
     }
 
-    auto unique_col(const std::size_t col_i) -> std::set<std::string>
-    {
+    /**
+     * Get all unique values in a column
+     * @param col_i the index from which to get all unique values
+     * @return a set of all unique calues in the specified column
+     */
+    auto unique_col(const std::size_t col_i) -> std::set<std::string> {
         std::set<std::string> col_v; // unique col values
         for(auto& gwas_entry : data)
             col_v.insert(gwas_entry[col_i]);
@@ -138,16 +159,25 @@ public:
         return col_v;
     }
 
-    std::unique_ptr<FlatFile> subsetter(const std::size_t name_idx, const std::string& col_value){
+    /**
+     * Creates a smaller version of this object based on some conditions
+     * @param name_idx the name of the column that will be matched for a value
+     * @param col_value the value that column at name_idx must have for subsetting
+     * @return a smaller version of this object where col at name_idx matches a value
+     */
+    FlatFile subsetter2(const std::size_t name_idx, const std::string& col_value){
+        return FlatFile(this->header, this->trim(name_idx, col_value));
+    }
+
+
+    std::vector<a_row> trim(const std::size_t name_idx, const std::string& col_value){
 
         std::vector<a_row> new_data;
         for(auto& gwas_entry : this->data)
             if(gwas_entry[name_idx] == col_value)
                 new_data.push_back(gwas_entry);
 
-        auto new_header = this->header;
-
-        return std::make_unique<FlatFile>(new_header, new_data);
+        return new_data;
     }
 };
 
@@ -177,46 +207,36 @@ private:
     auto grab_mask(const std::size_t idx, SomeFunction f)
     {
         std::vector<std::size_t> mask_pos;
-        for(std::size_t i{0}; i < file->num_rows(); i++)
-            if(!std::isnan(f(file->cell(i,idx)))) // data[i] is a gwas_entry, data[i][idx] is a value in a gwas entry
+        for(std::size_t i{0}; i < file.num_rows(); i++)
+            if(!std::isnan(f(file.cell(i,idx)))) // data[i] is a gwas_entry, data[i][idx] is a value in a gwas entry
                 mask_pos.emplace_back(i);
 
         return mask_pos;
     }
 
-    [[nodiscard]] gwas_entry& ith_gwas(std::size_t i) const{
-        return file->ith_row(i);
+    [[nodiscard]] gwas_entry& ith_gwas(std::size_t i) {
+        return file.ith_row(i);
     }
 
 public:
 
-    std::unique_ptr<FlatFile> file;
+    FlatFile file;
 
 
-    /**
-     * Initialize a new GWAS object
-     * @param a_header the header strings that describe the contents in each column
-     * @param a_data the vector of GWAS entries that make up a set of GWAS results
-     */
-
-    explicit GWAS (std::unique_ptr<FlatFile>& f){
-        file = std::move(f);
-    }
+    explicit GWAS(FlatFile& f) : file(std::move(f)){}
 
 
     /**
      * Instantiates a GWAS object from the file location of the GWAS catalog
      * @param file the path to the GWAS catalog TSV file
      */
-    explicit GWAS(const std::string& file_nm){ // NOLINT(cppcoreguidelines-pro-type-member-init)
-        file = std::make_unique<FlatFile>(file_nm);
-    }
+    explicit GWAS(const std::string& file_nm) : file(FlatFile(file_nm)){}
 
     /**
      * The number of GWAS entries in this object.
      * @return number of GWAS associations
      */
-    [[nodiscard]] auto size() const {return file->num_rows();} // Number of associations
+    [[nodiscard]] auto size() const {return file.num_rows();} // Number of associations
 
 
     //@todo replace with a true unit test
@@ -231,29 +251,29 @@ public:
      * Get all diseases in this GWAS object.
      * @return List of all diseases in this GWAS object.
      */
-    [[nodiscard]] auto uniqueDiseases() const
+    [[nodiscard]] auto uniqueDiseases()
     {
-        return file->unique_col(file->index_of.at("DISEASE/TRAIT"));
+        return file.unique_col(file.index_of.at("DISEASE/TRAIT"));
     }
 
-    void printSummary() const
+    void printSummary()
     {
         std::size_t cnt{0};
         for(auto& disease : this->uniqueDiseases())
         {
-            auto dis = this->subsetter(file->index_of.at("DISEASE/TRAIT"), disease);
+            auto dis = this->subsetter(file.index_of.at("DISEASE/TRAIT"), disease);
             if(dis.size() > 9)
                 cnt++;
         }
 
         std::cout << "associations: " << this->size() << "\tdiseases > 9 " << cnt << std::endl;
 
-        file->print_header();
+        file.print_header();
     }
 
-    [[nodiscard]] GWAS subsetter(const std::size_t name_idx, const std::string& col_value) const{
+    [[nodiscard]] GWAS subsetter(const std::size_t name_idx, const std::string& col_value) {
 
-        std::unique_ptr<FlatFile> new_f = file->subsetter(name_idx, col_value);
+        FlatFile new_f = file.subsetter2(name_idx, col_value);
 
         return GWAS(new_f);
     }
@@ -268,10 +288,10 @@ public:
     auto positions_and_effect_size() {
 
         std::vector<std::pair<unsigned long, double>> pe;
-        for (auto i : intersect<unsigned long>(grab_mask(file->index_of.at("CHR_POS"), parser<unsigned long>), grab_mask(file->index_of.at("OR or BETA"), parser<double>))) {
+        for (auto i : intersect<unsigned long>(grab_mask(file.index_of.at("CHR_POS"), parser<unsigned long>), grab_mask(file.index_of.at("OR or BETA"), parser<double>))) {
             auto &gwas_entry = this->ith_gwas(i);
-            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[file->index_of.at("CHR_POS")]);
-            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[file->index_of.at("OR or BETA")]);
+            auto a_pos        = boost::lexical_cast<unsigned long>(gwas_entry[file.index_of.at("CHR_POS")]);
+            auto effect_size  = boost::lexical_cast<double       >(gwas_entry[file.index_of.at("OR or BETA")]);
             pe.emplace_back(a_pos, effect_size);
         }
 
@@ -306,10 +326,9 @@ public:
      * Get all unique RSIDs in this GWAS object.
      * @return List of all RSIDs in this GWAS object.
      */
-    [[nodiscard]] auto uniqueRSIDs() const
+    [[nodiscard]] auto uniqueRSIDs()
     {
-
-        return file->unique_col(file->index_of.at("SNPS"));
+        return file.unique_col(file.index_of.at("SNPS"));
     }
 
 };
