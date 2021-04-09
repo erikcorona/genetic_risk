@@ -42,14 +42,23 @@ std::vector<std::string> getTokens(std::string& line){
     return tokens;
 }
 
+/**
+ * Returns the intersection of two interables.
+ * @tparam scalar The data type of the iterables
+ * @tparam collection1 The data type of the first set
+ * @tparam collection2 The data type of the second set
+ * @param a The first set
+ * @param b The second set
+ * @return The intersection betewen a and b
+ */
 template<typename scalar, typename collection1, typename collection2>
-auto intersect(collection1 a, collection2 b)
+auto intersect(collection1 a, collection2 b) -> std::set<scalar>
 {
     std::set<scalar> s(a.begin(), a.end());
     std::set<scalar> intersect_mask;
 
     for(auto i : b)
-        if(s.contains(i))
+        if(s.contains(i)) // log complexity on each lookup
             intersect_mask.insert(i);
 
     return intersect_mask;
@@ -71,6 +80,10 @@ std::vector<std::string> get_lines(const std::string& file){
     return lines;
 }
 
+/**
+ * This class represents a flat file that can be read in. The file should have the same number of columns in each line
+ * and should have a header.
+ */
 class FlatFile{
 
     using col_nm  = std::string             ;
@@ -166,14 +179,14 @@ public:
      * @return a smaller version of this object where col at name_idx matches a value
      */
     FlatFile subsetter2(const std::size_t name_idx, const std::string& col_value){
-        return FlatFile(this->header, this->trim(name_idx, col_value));
+        return FlatFile(header, trim(name_idx, col_value));
     }
 
 
     std::vector<a_row> trim(const std::size_t name_idx, const std::string& col_value){
 
         std::vector<a_row> new_data;
-        for(auto& gwas_entry : this->data)
+        for(auto& gwas_entry : data)
             if(gwas_entry[name_idx] == col_value)
                 new_data.push_back(gwas_entry);
 
@@ -223,7 +236,9 @@ public:
     FlatFile file;
 
 
-    explicit GWAS(FlatFile& f) : file(std::move(f)){}
+//    explicit GWAS(FlatFile& f) : file(std::move(f)){}
+
+    explicit GWAS(FlatFile&& f) : file(std::move(f)){}
 
 
     /**
@@ -261,7 +276,7 @@ public:
         std::size_t cnt{0};
         for(auto& disease : this->uniqueDiseases())
         {
-            auto dis = this->subsetter(file.index_of.at("DISEASE/TRAIT"), disease);
+            auto dis = this->subsetter("DISEASE/TRAIT", disease);
             if(dis.size() > 9)
                 cnt++;
         }
@@ -271,11 +286,10 @@ public:
         file.print_header();
     }
 
-    [[nodiscard]] GWAS subsetter(const std::size_t name_idx, const std::string& col_value) {
 
-        FlatFile new_f = file.subsetter2(name_idx, col_value);
+    GWAS subsetter(const std::string& col_nm, const std::string& col_value) {
 
-        return GWAS(new_f);
+        return GWAS(file.subsetter2(file.index_of.at(col_nm), col_value));
     }
 
     /**
